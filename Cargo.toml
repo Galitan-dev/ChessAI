@@ -1,8 +1,17 @@
 [package]
+
 name = "chess-ai"
 version = "0.1.0"
 edition = "2021"
+authors = [
+    "Galitan-dev <galitan.dev@gmail.com>"
+]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[[bin]]
+name = "chess-ai"
 
 [dependencies]
+piston = "0.53.1"
+piston2d-graphics = "0.42.0"
+pistoncore-glutin_window = "0.70.1"
+piston2d-opengl_graphics = "0.81.0"
