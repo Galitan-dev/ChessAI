@@ -1,0 +1,17 @@
+{
+  "name": "chess-ai",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "prepare": "husky install"
+  },
+  "keywords": [],
+  "author": "Galitan-dev",
+  "license": "ISC",
+  "devDependencies": {
+    "husky": "^8.0.2",
+    "@commitlint/cli": "^17.2.0",
+    "@commitlint/config-conventional": "^17.2.0"
+  },
+  "packageManager": "pnpm@7.15.0"
+}
