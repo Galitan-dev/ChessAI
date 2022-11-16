@@ -1,30 +1,39 @@
-use opengl_graphics::GlGraphics;
-use piston::{RenderArgs, UpdateArgs};
+use gfx_core::{command::Buffer, Factory, Resources};
+use piston_window::{Context, Graphics, RenderArgs, TextureContext, UpdateArgs};
 
-use crate::{game::draw::Drawable, OPEN_GL};
+use crate::draw::Drawable;
 
-use self::board::Board;
+pub use self::board::BoardOrientation;
+pub use self::board::{Board, BOARD_HEIGHT, BOARD_WIDTH};
+pub use self::piece::Piece;
 
 mod board;
-mod draw;
+mod piece;
 
 pub struct Game {
-    gl: GlGraphics,
     board: Board,
 }
 
 impl Game {
-    pub fn new() -> Self {
+    pub fn new(board_orientation: BoardOrientation) -> Self {
         Self {
-            gl: GlGraphics::new(OPEN_GL),
-            board: Board::new(),
+            board: Board::new(board_orientation),
         }
     }
 
-    pub fn render(&mut self, args: &RenderArgs) {
-        self.gl.draw(args.viewport(), |c, gl| {
-            self.board.draw(c, gl, args.window_size);
-        });
+    pub fn render<
+        G: Graphics<Texture = piston_window::Texture<R>>,
+        F: Factory<R>,
+        R: Resources,
+        C: Buffer<R>,
+    >(
+        &mut self,
+        c: Context,
+        g: &mut G,
+        args: &RenderArgs,
+        tc: &mut TextureContext<F, R, C>,
+    ) {
+        self.board.draw(c, g, args.window_size, tc);
     }
 
     pub fn update(&mut self, _args: &UpdateArgs) {}

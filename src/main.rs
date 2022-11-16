@@ -1,27 +1,28 @@
-use opengl_graphics::OpenGL;
-use piston::{EventSettings, Events, RenderEvent, UpdateEvent};
+use game::BoardOrientation;
+use piston_window::{EventSettings, Events, OpenGL, RenderEvent, UpdateEvent};
 
 use crate::{game::Game, utils::create_window};
 
-extern crate glutin_window;
-extern crate graphics;
-extern crate opengl_graphics;
-extern crate piston;
+extern crate gfx_core;
+extern crate piston_window;
 
-mod game;
-mod utils;
+pub mod draw;
+pub mod game;
+pub mod utils;
 
 pub const OPEN_GL: OpenGL = OpenGL::V4_5;
 
 fn main() {
     let mut window = create_window();
-
-    let mut game = Game::new();
+    let mut texture_context = window.create_texture_context();
+    let mut game = Game::new(BoardOrientation::Black);
 
     let mut events = Events::new(EventSettings::new());
     while let Some(e) = events.next(&mut window) {
         if let Some(args) = e.render_args() {
-            game.render(&args);
+            window.draw_2d(&e, |c, g, _| {
+                game.render(c, g, &args, &mut texture_context);
+            });
         }
 
         if let Some(args) = e.update_args() {

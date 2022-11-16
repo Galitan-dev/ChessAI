@@ -4,7 +4,7 @@
   "description": "",
   "scripts": {
     "prepare": "husky install",
-    "dev": "cargo watch -c -w src -x run"
+    "dev": "cargo watch -c -w src -x \"fmt && cargo run\""
   },
   "keywords": [],
   "author": "Galitan-dev",
