@@ -28,16 +28,18 @@ impl Drawable for Board {
             for y in 0..BOARD_HEIGHT {
                 let transform = c.transform.trans(x as f64 * w, y as f64 * h);
 
-                if self.selection() == Some([x, y]) {
+                if x % 2 != y % 2 {
                     rectangle(
-                        [86. / 255., 130. / 255., 89. / 255., 1.],
+                        [165. / 255., 123. / 255., 90. / 255., 1.],
                         rect,
                         transform,
                         g,
                     );
-                } else if x % 2 != y % 2 {
+                }
+
+                if self.selection() == Some([x, y]) {
                     rectangle(
-                        [165. / 255., 123. / 255., 90. / 255., 1.],
+                        [86. / 255., 130. / 255., 89. / 255., 0.7],
                         rect,
                         transform,
                         g,
