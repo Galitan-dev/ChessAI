@@ -3,6 +3,7 @@ use piston_window::{Context, Graphics, TextureContext};
 
 mod board;
 mod piece;
+mod point;
 
 pub trait Drawable {
     fn draw<

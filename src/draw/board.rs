@@ -51,5 +51,15 @@ impl Drawable for Board {
         for (x, y, piece) in self.pieces() {
             (x, y, piece, self.orientation()).draw(c, g, size, tc);
         }
+
+        for (x, y, _) in self.pieces() {
+            if self.selection() == Some([x, y]) {
+                let possible_moves = self.get_possible_moves_for(x, y);
+
+                for possible_move in possible_moves {
+                    possible_move.draw(c, g, size, tc);
+                }
+            }
+        }
     }
 }

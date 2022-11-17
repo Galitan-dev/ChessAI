@@ -26,6 +26,28 @@ impl Board {
         board
     }
 
+    pub fn get_possible_moves_for(&self, x: usize, y: usize) -> Vec<[usize; 2]> {
+        if let Some(piece) = self.pieces.get(x, y) {
+            piece
+                .moves(self.orientation(), x, y)
+                .into_iter()
+                .filter(|&[x2, y2]| {
+                    if !(0..BOARD_WIDTH as _).contains(&x2) || !(0..BOARD_HEIGHT as _).contains(&y2)
+                    {
+                        false
+                    } else if let Some(piece2) = self.pieces.get(x2 as usize, y2 as usize) {
+                        piece2.color() != piece.color()
+                    } else {
+                        true
+                    }
+                })
+                .map(|[x2, y2]| [x2 as _, y2 as _])
+                .collect()
+        } else {
+            vec![]
+        }
+    }
+
     pub fn selection(&self) -> Option<[usize; 2]> {
         self.selection
     }
