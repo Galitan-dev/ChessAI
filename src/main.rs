@@ -15,7 +15,7 @@ pub const OPEN_GL: OpenGL = OpenGL::V4_5;
 fn main() {
     let mut window = create_window();
     let mut texture_context = window.create_texture_context();
-    let mut game = Game::new(BoardOrientation::Black);
+    let mut game = Game::new(BoardOrientation::White);
 
     let mut events = Events::new(EventSettings::new());
     while let Some(e) = events.next(&mut window) {

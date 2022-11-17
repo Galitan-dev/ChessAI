@@ -3,7 +3,7 @@ use piston_window::{clear, rectangle, Context, Graphics, TextureContext, Transfo
 
 use super::Drawable;
 
-use crate::game::{Board, BoardOrientation, BOARD_HEIGHT, BOARD_WIDTH};
+use crate::game::{Board, BOARD_HEIGHT, BOARD_WIDTH};
 
 impl Drawable for Board {
     fn draw<
@@ -39,19 +39,8 @@ impl Drawable for Board {
             }
         }
 
-        for piece in self.pieces() {
-            let c = match self.orientation() {
-                BoardOrientation::White => {
-                    c.trans(piece.positionf64()[0] * w, piece.positionf64()[1] * h)
-                }
-                BoardOrientation::Black => c.trans(
-                    piece.positionf64()[0] * w,
-                    (7. - piece.positionf64()[1]) * h,
-                ),
-            }
-            .scale(w / 60., h / 60.);
-
-            piece.draw(c, g, size, tc);
+        for (x, y, piece) in self.pieces() {
+            (x, y, piece, self.orientation()).draw(c, g, size, tc);
         }
     }
 }

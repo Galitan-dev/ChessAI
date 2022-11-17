@@ -1,6 +1,6 @@
 use crate::utils::Array2D;
 
-use super::piece::{Piece, PieceColor, PieceColor::*, PieceKind, PieceKind::*, PiecePosition};
+use super::piece::{Piece, PieceColor, PieceColor::*, PieceKind, PieceKind::*};
 
 pub const BOARD_WIDTH: usize = 8;
 pub const BOARD_HEIGHT: usize = 8;
@@ -58,9 +58,9 @@ impl Board {
         self.add(Qween, [3, 0], Black);
     }
 
-    pub fn add(&mut self, a: PieceKind, at: PiecePosition, with: PieceColor) {
+    pub fn add(&mut self, a: PieceKind, at: [usize; 2], with: PieceColor) {
         let [x, y] = at;
-        self.pieces.set(x, y, Piece::new(a, at, with));
+        self.pieces.set(x, y, Piece::new(a, with));
     }
 
     pub fn pieces(&self) -> Array2D<Piece, BOARD_WIDTH, BOARD_HEIGHT> {

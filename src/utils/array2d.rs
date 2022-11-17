@@ -67,17 +67,17 @@ impl<T: Copy, const W: usize, const H: usize> Array2D<T, W, H> {
 }
 
 impl<T: Copy, const W: usize, const H: usize> IntoIterator for Array2D<T, W, H> {
-    type Item = T;
+    type Item = (usize, usize, T);
 
-    type IntoIter = std::vec::IntoIter<T>;
+    type IntoIter = std::vec::IntoIter<(usize, usize, T)>;
 
     fn into_iter(self) -> Self::IntoIter {
-        let mut vec = Vec::new();
+        let mut vec: Vec<(usize, usize, T)> = Vec::new();
 
-        for row in self.data {
-            for item_option in row {
+        for (y, row) in self.data.iter().enumerate() {
+            for (x, item_option) in row.iter().enumerate() {
                 if let Some(item) = item_option {
-                    vec.push(item);
+                    vec.push((x, y, *item));
                 }
             }
         }

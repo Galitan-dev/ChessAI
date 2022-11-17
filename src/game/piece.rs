@@ -16,25 +16,12 @@ impl PieceColor {
 #[derive(Clone, Copy)]
 pub struct Piece {
     color: PieceColor,
-    position: PiecePosition,
     kind: PieceKind,
 }
 
 impl Piece {
-    pub fn new(kind: PieceKind, position: PiecePosition, color: PieceColor) -> Self {
-        Self {
-            kind,
-            position,
-            color,
-        }
-    }
-
-    pub fn position(&self) -> PiecePosition {
-        self.position
-    }
-
-    pub fn positionf64(&self) -> [f64; 2] {
-        [self.position()[0] as f64, self.position()[1] as f64]
+    pub fn new(kind: PieceKind, color: PieceColor) -> Self {
+        Self { kind, color }
     }
 
     pub fn color(&self) -> PieceColor {
@@ -68,5 +55,3 @@ impl PieceKind {
         }
     }
 }
-
-pub type PiecePosition = [usize; 2];
