@@ -8,6 +8,7 @@ pub const BOARD_HEIGHT: usize = 8;
 pub struct Board {
     pieces: Array2D<Piece, BOARD_WIDTH, BOARD_HEIGHT>,
     orientation: BoardOrientation,
+    selection: Option<[usize; 2]>,
 }
 
 pub type BoardOrientation = PieceColor;
@@ -17,11 +18,16 @@ impl Board {
         let mut board = Self {
             pieces: Array2D::new(),
             orientation,
+            selection: None,
         };
 
         board.fill_pieces();
 
         board
+    }
+
+    pub fn selection(&self) -> Option<[usize; 2]> {
+        self.selection
     }
 
     fn fill_pieces(&mut self) {
@@ -65,6 +71,12 @@ impl Board {
 
     pub fn pieces(&self) -> Array2D<Piece, BOARD_WIDTH, BOARD_HEIGHT> {
         self.pieces
+    }
+
+    pub fn select(&mut self, x: usize, y: usize) {
+        if self.pieces.has(x, y) {
+            self.selection = Some([x, y]);
+        }
     }
 
     pub fn orientation(&self) -> BoardOrientation {
