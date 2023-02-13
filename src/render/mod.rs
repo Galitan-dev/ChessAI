@@ -7,7 +7,11 @@ pub mod piece;
 
 pub trait Render {
     fn rgb<N: Into<f32>>(&self, r: N, g: N, b: N) -> Color {
-        [r.into() / 255.0, g.into() / 255.0, b.into() / 255.0, 1.0]
+        self.rgba(r, g, b, 1.0)
+    }
+
+    fn rgba<N: Into<f32>>(&self, r: N, g: N, b: N, a: f32) -> Color {
+        [r.into() / 255.0, g.into() / 255.0, b.into() / 255.0, a]
     }
 
     fn render(

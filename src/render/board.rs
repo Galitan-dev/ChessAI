@@ -19,6 +19,7 @@ impl Render for Board {
     ) {
         let square_side = args.window_size[0] / 8.;
         let is_dragging = self.is_dragging();
+        let selected_piece_legal_moves = self.get_selected_piece_legal_moves();
 
         clear(self.rgb::<u8>(0, 48, 73), g);
 
@@ -26,30 +27,56 @@ impl Render for Board {
             for y in 0..8 {
                 let is_light_square = (x + y) % 2 == 0;
                 let is_selected = self.is_selected(x, y);
+                let is_legal_move = selected_piece_legal_moves.contains(&[x, y]);
 
                 let c = c
                     .clone()
                     .scale(square_side, square_side)
                     .trans(x as f64, y as f64);
 
-                if is_light_square || is_selected {
-                    let color = if is_selected {
-                        self.rgb::<u8>(247, 127, 0)
-                    } else {
-                        self.rgb::<u8>(234, 226, 183)
-                    };
+                if is_light_square {
+                    rectangle(
+                        self.rgb::<u8>(234, 226, 183),
+                        square(0.0, 0.0, 1.),
+                        c.transform,
+                        g,
+                    );
+                }
 
-                    rectangle(color, square(0.0, 0.0, 1.), c.transform, g);
+                if is_selected {
+                    rectangle(
+                        self.rgba::<u8>(247, 127, 0, 0.9),
+                        square(0.0, 0.0, 1.),
+                        c.transform,
+                        g,
+                    );
+                } else if is_legal_move {
+                    rectangle(
+                        self.rgba::<u8>(214, 40, 40, 0.9),
+                        square(0.0, 0.0, 1.),
+                        c.transform,
+                        g,
+                    );
                 }
 
                 if !is_selected || !is_dragging {
-                    self.get_piece(x, y).render(args, c, g, texture_bank, mouse_pos);
+                    self.get_piece(x, y)
+                        .render(args, c, g, texture_bank, mouse_pos);
                 }
             }
         }
 
         if is_dragging {
-            self.get_selected().render(args, c.clone().trans_pos(mouse_pos).scale(square_side, square_side).trans(-0.5, -0.5), g, texture_bank, mouse_pos);
+            self.get_selected().render(
+                args,
+                c.clone()
+                    .trans_pos(mouse_pos)
+                    .scale(square_side, square_side)
+                    .trans(-0.5, -0.5),
+                g,
+                texture_bank,
+                mouse_pos,
+            );
         }
     }
 }

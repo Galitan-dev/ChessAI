@@ -20,6 +20,14 @@ pub struct Board {
 }
 
 impl Board {
+    pub fn get_piece_maybe(&self, x: isize, y: isize) -> Option<Piece> {
+        if x < 0 || y < 0 {
+            return None;
+        }
+
+        self.pieces.get((y * 8 + x) as usize).copied()
+    }
+
     pub fn get_piece(&self, x: usize, y: usize) -> Piece {
         self.pieces[y * 8 + x]
     }
@@ -34,6 +42,29 @@ impl Board {
 
     pub fn get_selected(&self) -> Piece {
         self.selected.map(|i| self.pieces[i]).unwrap_or(Piece::None)
+    }
+
+    pub fn get_selected_piece_legal_moves(&self) -> Vec<[usize; 2]> {
+        self.selected
+            .map(|i| self.get_legal_moves(i))
+            .unwrap_or_default()
+    }
+
+    fn get_legal_moves(&self, square_index: usize) -> Vec<[usize; 2]> {
+        self.pieces[square_index].legal_moves(
+            [
+                square_index % 8,
+                (square_index as f64 / 8.).floor() as usize,
+            ],
+            self,
+        )
+    }
+
+    fn get_legal_moves_square_indices(&self, square_index: usize) -> Vec<usize> {
+        self.get_legal_moves(square_index)
+            .iter()
+            .map(|[x, y]| y * 8 + x)
+            .collect()
     }
 
     pub fn mouse_press(&mut self, mouse_x: f64, mouse_y: f64) {
@@ -71,8 +102,10 @@ impl Board {
     }
 
     pub fn move_piece(&mut self, from: usize, to: usize) {
-        self.pieces.swap(from, to);
-        self.pieces[from] = Piece::None;
+        if self.get_legal_moves_square_indices(from).contains(&to) {
+            self.pieces.swap(from, to);
+            self.pieces[from] = Piece::None;
+        }
     }
 }
 

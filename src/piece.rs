@@ -1,4 +1,6 @@
-use std::ops::{BitAnd, BitOr, Sub};
+use std::ops::{BitAnd, BitOr, Range, Sub};
+
+use crate::board::Board;
 
 #[derive(Debug, Clone, Copy, FromPrimitive, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Piece {
@@ -57,15 +59,166 @@ impl Sub for Piece {
 }
 
 impl Piece {
+    pub fn is_none(&self) -> bool {
+        *self == Self::None
+    }
+
+    pub fn is_white(&self) -> bool {
+        *self & Self::White == Self::White
+    }
+
+    pub fn is_black(&self) -> bool {
+        *self & Self::Black == Self::Black
+    }
+
+    pub fn ennemy(&self) -> Self {
+        if self.is_white() {
+            Self::Black
+        } else if self.is_black() {
+            Self::White
+        } else {
+            Self::None
+        }
+    }
+
+    pub fn split(&self) -> (Self, Self) {
+        let color = self.color();
+        let piece = *self - color;
+
+        (piece, color)
+    }
+
+    pub fn color(&self) -> Self {
+        if self.is_white() {
+            Self::White
+        } else if self.is_black() {
+            Self::Black
+        } else {
+            Self::None
+        }
+    }
+
+    pub fn legal_moves(&self, [ux, uy]: [usize; 2], board: &Board) -> Vec<[usize; 2]> {
+        let x = ux as isize;
+        let y = uy as isize;
+
+        let mut moves = Vec::new();
+        let (piece, _) = self.split();
+
+        match piece {
+            Self::Rook => {
+                self.slide_to_wall(x..-1, y..0, board, &mut moves);
+                self.slide_to_wall(x..1, y..0, board, &mut moves);
+                self.slide_to_wall(x..0, y..-1, board, &mut moves);
+                self.slide_to_wall(x..0, y..1, board, &mut moves);
+            }
+            Self::Bishop => {
+                self.slide_to_wall(x..-1, y..-1, board, &mut moves);
+                self.slide_to_wall(x..1, y..1, board, &mut moves);
+                self.slide_to_wall(x..1, y..-1, board, &mut moves);
+                self.slide_to_wall(x..-1, y..1, board, &mut moves);
+            }
+            Self::Queen => {
+                self.slide_to_wall(x..-1, y..0, board, &mut moves);
+                self.slide_to_wall(x..1, y..0, board, &mut moves);
+                self.slide_to_wall(x..0, y..-1, board, &mut moves);
+                self.slide_to_wall(x..0, y..1, board, &mut moves);
+                self.slide_to_wall(x..-1, y..-1, board, &mut moves);
+                self.slide_to_wall(x..1, y..1, board, &mut moves);
+                self.slide_to_wall(x..1, y..-1, board, &mut moves);
+                self.slide_to_wall(x..-1, y..1, board, &mut moves);
+            }
+            Self::King => {
+                self.slide([x + 1, y + 1], board, &mut moves);
+                self.slide([x + 1, y], board, &mut moves);
+                self.slide([x + 1, y - 1], board, &mut moves);
+                self.slide([x, y + 1], board, &mut moves);
+                self.slide([x, y - 1], board, &mut moves);
+                self.slide([x - 1, y + 1], board, &mut moves);
+                self.slide([x - 1, y], board, &mut moves);
+                self.slide([x - 1, y - 1], board, &mut moves);
+            }
+            Self::Pawn => {
+                let dy = if self.is_white() { -1 } else { 1 };
+                if board.get_piece(ux, (y + dy) as usize).is_none() {
+                    moves.push([ux, (y + dy) as usize]);
+
+                    if y == if self.is_white() { 6 } else { 1 }
+                        && board.get_piece(ux, (y + 2 * dy) as usize).is_none()
+                    {
+                        moves.push([ux, (y + 2 * dy) as usize]);
+                    }
+                }
+
+                if (1..7).contains(&x) {
+                    if board.get_piece(ux - 1, (y + dy) as usize).color() == self.ennemy() {
+                        moves.push([ux - 1, (y + dy) as usize]);
+                    }
+
+                    if board.get_piece(ux + 1, (y + dy) as usize).color() == self.ennemy() {
+                        moves.push([ux + 1, (y + dy) as usize]);
+                    }
+                }
+            }
+            Self::LeftKnight | Self::RightKnight => {
+                self.slide([x + 2, y + 1], board, &mut moves);
+                self.slide([x + 2, y - 1], board, &mut moves);
+                self.slide([x - 2, y + 1], board, &mut moves);
+                self.slide([x - 2, y - 1], board, &mut moves);
+                self.slide([x + 1, y + 2], board, &mut moves);
+                self.slide([x - 1, y + 2], board, &mut moves);
+                self.slide([x + 1, y - 2], board, &mut moves);
+                self.slide([x - 1, y - 2], board, &mut moves);
+            }
+            _ => (),
+        }
+
+        moves
+    }
+
+    pub fn slide_to_wall(
+        &self,
+        x_way: Range<isize>,
+        y_way: Range<isize>,
+        board: &Board,
+        moves: &mut Vec<[usize; 2]>,
+    ) {
+        let (mut x, dx) = (x_way.start, x_way.end);
+        let (mut y, dy) = (y_way.start, y_way.end);
+
+        x += dx;
+        y += dy;
+
+        while (0..8).contains(&x) && (0..8).contains(&y) {
+            if !self.slide([x, y], board, moves) {
+                break;
+            }
+
+            x += dx;
+            y += dy;
+        }
+    }
+
+    pub fn slide(&self, [x, y]: [isize; 2], board: &Board, moves: &mut Vec<[usize; 2]>) -> bool {
+        if let Some(color) = board.get_piece_maybe(x, y).map(|p| p.color()) {
+            if color != self.color() {
+                moves.push([x as usize, y as usize]);
+            }
+            color.is_none()
+        } else {
+            false
+        }
+    }
+
     pub fn name(&self) -> &str {
         match self {
-            Piece::Pawn => "pawn",
-            Piece::LeftKnight => "left_knight",
-            Piece::RightKnight => "right_knight",
-            Piece::Bishop => "bishop",
-            Piece::Rook => "rook",
-            Piece::Queen => "queen",
-            Piece::King => "king",
+            Self::Pawn => "pawn",
+            Self::LeftKnight => "left_knight",
+            Self::RightKnight => "right_knight",
+            Self::Bishop => "bishop",
+            Self::Rook => "rook",
+            Self::Queen => "queen",
+            Self::King => "king",
             _ => panic!("Unexpected piece: {:?}", self),
         }
     }
