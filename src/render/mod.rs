@@ -16,5 +16,6 @@ pub trait Render {
         c: Context,
         g: &mut G2d,
         texture_bank: &HashMap<u8, G2dTexture>,
+        mouse_pos: [f64; 2],
     );
 }

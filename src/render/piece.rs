@@ -1,8 +1,7 @@
 use std::collections::HashMap;
 
 use piston_window::{
-    rectangle::square, Flip, G2d, G2dTexture, Image, RenderArgs,
-    TextureSettings, G2dTextureContext,
+    rectangle::square, Flip, G2d, G2dTexture, G2dTextureContext, Image, RenderArgs, TextureSettings,
 };
 
 use crate::piece::Piece;
@@ -12,15 +11,16 @@ use super::Render;
 impl Render for Piece {
     fn render(
         &self,
-        _: RenderArgs,
+        _args: RenderArgs,
         c: piston_window::Context,
         g: &mut G2d,
         texture_bank: &HashMap<u8, G2dTexture>,
+        _mouse_pos: [f64; 2],
     ) {
         if *self == Piece::None {
             return;
         }
-        
+
         let image = Image::new().rect(square(0.0, 0.0, 1.0));
         let texture = texture_bank.get(&(*self as u8)).unwrap();
 
@@ -49,7 +49,8 @@ pub fn texture_bank(texture_context: &mut G2dTextureContext) -> HashMap<u8, G2dT
                 white_pieces.join(file.clone()),
                 Flip::None,
                 &TextureSettings::new(),
-            ).unwrap(),
+            )
+            .unwrap(),
         );
         bank.insert(
             i | Piece::Black as u8,
@@ -58,7 +59,8 @@ pub fn texture_bank(texture_context: &mut G2dTextureContext) -> HashMap<u8, G2dT
                 black_pieces.join(file.clone()),
                 Flip::None,
                 &TextureSettings::new(),
-            ).unwrap(),
+            )
+            .unwrap(),
         );
     }
 
