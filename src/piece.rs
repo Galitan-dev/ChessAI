@@ -1,6 +1,6 @@
 use std::ops::{BitAnd, BitOr, Sub};
 
-#[derive(Debug, Clone, Copy, FromPrimitive, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, FromPrimitive, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Piece {
     None = 0,
 
@@ -57,18 +57,8 @@ impl Sub for Piece {
 }
 
 impl Piece {
-    pub fn is_white(&self) -> bool {
-        *self & Piece::White != Piece::None
-    }
-
     pub fn name(&self) -> &str {
-        let piece = if self.is_white() {
-            *self - Self::White
-        } else {
-            *self - Self::Black
-        };
-
-        match piece {
+        match self {
             Piece::Pawn => "pawn",
             Piece::LeftKnight => "left_knight",
             Piece::RightKnight => "right_knight",
@@ -76,7 +66,7 @@ impl Piece {
             Piece::Rook => "rook",
             Piece::Queen => "queen",
             Piece::King => "king",
-            _ => panic!("Unexpected piece: {:?}", piece),
+            _ => panic!("Unexpected piece: {:?}", self),
         }
     }
 }

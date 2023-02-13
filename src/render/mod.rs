@@ -1,7 +1,9 @@
-use piston_window::{types::Color, Context, G2d, G2dTextureContext, RenderArgs};
+use std::collections::HashMap;
+
+use piston_window::{types::Color, Context, G2d, G2dTexture, RenderArgs};
 
 mod board;
-mod piece;
+pub mod piece;
 
 pub trait Render {
     fn rgb<N: Into<f32>>(&self, r: N, g: N, b: N) -> Color {
@@ -13,6 +15,6 @@ pub trait Render {
         args: RenderArgs,
         c: Context,
         g: &mut G2d,
-        texture_context: &mut G2dTextureContext,
+        texture_bank: &HashMap<u8, G2dTexture>,
     );
 }
