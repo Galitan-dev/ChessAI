@@ -334,14 +334,21 @@ impl Board {
 
     pub fn update(&mut self, dt: Duration) {
         if self.current_opponent() == Opponent::Computer {
-            if let Some((from, current, to)) = self.flying_piece {
+            if self.square_in_promotion.is_some() {
+                self.promote(
+                    *[Piece::Queen, Piece::Rook, Piece::Bishop, Piece::LeftKnight]
+                        .choose(&mut self.rng.clone())
+                        .unwrap(),
+                );
+            } else if let Some((from, current, to)) = self.flying_piece {
                 let start = [(from as f64 / 8.).floor(), from as f64 % 8.];
                 let target = [(to as f64 / 8.).floor(), to as f64 % 8.];
                 let dist_x = target[0] - current[0];
                 let dist_y = target[1] - current[1];
                 let dist = (dist_x.powi(2) + dist_y.powi(2)).sqrt();
-                let total_dist = ((target[0] - start[0]).powi(2) + (target[1] - start[1]).powi(2)).sqrt();
-                let v = total_dist * 2.;
+                let total_dist =
+                    ((target[0] - start[0]).powi(2) + (target[1] - start[1]).powi(2)).sqrt();
+                let v = total_dist * 4.;
                 let d = dt.as_secs_f64() * v;
                 if d >= dist {
                     self.flying_piece = None;
@@ -383,7 +390,7 @@ impl Default for Board {
             moved_pieces: HashSet::new(),
             legal_moves: HashMap::new(),
             current_turn: Piece::White,
-            white_opponent: Opponent::Player,
+            white_opponent: Opponent::Computer,
             black_opponent: Opponent::Computer,
             rng: thread_rng(),
             flying_piece: None,
