@@ -14,6 +14,12 @@ const BACK_ROW: [Piece; 8] = [
     Piece::Rook,
 ];
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Opponent {
+    Player,
+    Computer
+}
+
 #[derive(Debug, Clone)]
 pub struct Board {
     pieces: [Piece; 64],
@@ -21,6 +27,9 @@ pub struct Board {
     dragging: bool,
     last_move: [usize; 2],
     moved_pieces: HashSet<usize>,
+    current_turn: Piece,
+    white_opponent: Opponent,
+    black_opponent: Opponent,
 }
 
 impl Board {
@@ -88,7 +97,19 @@ impl Board {
         self.moved_pieces.contains(&(y * 8 + x))
     }
 
+    pub fn current_opponent(&self) -> Opponent {
+        if self.current_turn.is_white() {
+            self.white_opponent
+        } else {
+            self.black_opponent
+        }
+    }
+
     pub fn mouse_press(&mut self, mouse_x: f64, mouse_y: f64) {
+        if self.current_opponent() != Opponent::Player {
+            return;
+        }
+
         let x = (mouse_x * 8.).floor() as usize;
         let y = (mouse_y * 8.).floor() as usize;
         let square_index = y * 8 + x;
@@ -109,6 +130,10 @@ impl Board {
     }
 
     pub fn mouse_relase(&mut self, mouse_x: f64, mouse_y: f64) {
+        if self.current_opponent() != Opponent::Player {
+            return;
+        }
+
         let x = (mouse_x * 8.).floor() as usize;
         let y = (mouse_y * 8.).floor() as usize;
         let square_index = y * 8 + x;
@@ -149,6 +174,8 @@ impl Board {
                 self.pieces[from + to % 8 - from % 8] = Piece::None;
                 self.moved_pieces.insert(from + to % 8 - from % 8);
             }
+
+            self.current_turn = self.current_turn.ennemy()
         }
     }
 }
@@ -171,6 +198,9 @@ impl Default for Board {
             dragging: false,
             last_move: [0; 2],
             moved_pieces: HashSet::new(),
+            current_turn: Piece::White,
+            white_opponent: Opponent::Player,
+            black_opponent: Opponent::Player
         }
     }
 }
