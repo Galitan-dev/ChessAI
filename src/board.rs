@@ -1,4 +1,13 @@
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    fs::File,
+    io::BufReader,
+    thread,
+    time::Duration,
+};
+
+use rand::{rngs::ThreadRng, seq::SliceRandom, thread_rng};
+use rodio::{Decoder, OutputStream, Source};
 
 use crate::piece::Piece;
 
@@ -20,7 +29,7 @@ pub enum Opponent {
     Computer,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Board {
     pieces: [Piece; 64],
     selected: Option<usize>,
@@ -31,6 +40,8 @@ pub struct Board {
     current_turn: Piece,
     white_opponent: Opponent,
     black_opponent: Opponent,
+    rng: ThreadRng,
+    flying_piece: Option<(usize, [f64; 2], usize)>,
 }
 
 impl Board {
@@ -93,6 +104,20 @@ impl Board {
             .collect()
     }
 
+    fn get_all_legal_moves(&mut self) -> Vec<[usize; 2]> {
+        let mut legal_moves = Vec::new();
+
+        for from in 0..64 {
+            if self.pieces[from].color() == self.current_turn {
+                for to in self.get_legal_moves_square_indices(from) {
+                    legal_moves.push([from, to])
+                }
+            }
+        }
+
+        legal_moves
+    }
+
     pub fn is_in_last_move(&self, x: usize, y: usize) -> bool {
         if self.last_move[0] == self.last_move[1] {
             return false;
@@ -129,7 +154,7 @@ impl Board {
                 self.move_piece(selected, square_index);
             }
         } else {
-            if self.pieces[square_index] == Piece::None {
+            if self.pieces[square_index].color() != self.current_turn {
                 return;
             }
 
@@ -161,9 +186,11 @@ impl Board {
             let (piece, _) = self.pieces[from].split();
 
             let is_little_castle = piece == Piece::King && to == from + 2;
-            let is_big_castle = piece == Piece::King && to == from - 2;
+            let is_big_castle = piece == Piece::King && to + 2 == from;
             let is_en_passant =
                 piece == Piece::Pawn && to % 8 != from % 8 && self.pieces[to].is_none();
+
+            let mut ate = !self.pieces[to].is_none();
 
             self.pieces.swap(from, to);
             self.pieces[from] = Piece::None;
@@ -182,10 +209,65 @@ impl Board {
             if is_en_passant {
                 self.pieces[from + to % 8 - from % 8] = Piece::None;
                 self.moved_pieces.insert(from + to % 8 - from % 8);
+                ate = true;
             }
 
             self.current_turn = self.current_turn.ennemy();
             self.legal_moves.drain();
+            self.play_sound(if ate { "kill" } else { "move" });
+        }
+    }
+
+    pub fn play_sound(&self, name: &'static str) {
+        thread::spawn(move || {
+            let (_stream, stream_handle) = OutputStream::try_default().unwrap();
+
+            let assets = find_folder::Search::ParentsThenKids(3, 3)
+                .for_folder("assets")
+                .unwrap();
+            let file = BufReader::new(
+                File::open(assets.join("sound").join(name).with_extension("ogg")).unwrap(),
+            );
+
+            let source = Decoder::new(file).unwrap();
+            stream_handle.play_raw(source.convert_samples()).unwrap();
+            thread::sleep(Duration::from_secs(1));
+        });
+    }
+
+    pub fn flying_piece(&self) -> Option<([usize; 2], [f64; 2], [usize; 2])> {
+        self.flying_piece.map(|(from, current, to)| {
+            (
+                [from % 8, (from as f64 / 8.).floor() as usize],
+                current,
+                [to % 8, (to as f64 / 8.).floor() as usize],
+            )
+        })
+    }
+
+    pub fn update(&mut self, dt: Duration) {
+        if self.current_opponent() == Opponent::Computer {
+            if let Some((from, current, to)) = self.flying_piece {
+                let target = [(to as f64 / 8.).floor(), to as f64 % 8.];
+                let dist_x = target[0] - current[0];
+                let dist_y = target[1] - current[1];
+                let dist = (dist_x.powi(2) + dist_y.powi(2)).sqrt();
+                let d = dt.as_secs_f64() * 4.;
+                if d >= dist {
+                    self.flying_piece = None;
+                    self.move_piece(from, to);
+                } else {
+                    let dy = d * dist_y / dist;
+                    let dx = d * dist_x / dist;
+                    self.flying_piece = Some((from, [current[0] + dx, current[1] + dy], to));
+                }
+            } else {
+                let legal_moves = self.get_all_legal_moves();
+                let [from, to] = *legal_moves.choose(&mut self.rng).unwrap();
+                self.flying_piece =
+                    Some((from, [(from as f64 / 8.).floor(), from as f64 % 8.], to));
+                self.last_move = [from, to];
+            }
         }
     }
 }
@@ -211,7 +293,9 @@ impl Default for Board {
             legal_moves: HashMap::new(),
             current_turn: Piece::White,
             white_opponent: Opponent::Player,
-            black_opponent: Opponent::Player,
+            black_opponent: Opponent::Computer,
+            rng: thread_rng(),
+            flying_piece: None,
         }
     }
 }

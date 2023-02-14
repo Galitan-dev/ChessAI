@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use anyhow::Result;
 use board::Board;
 use piston_window::{
@@ -15,6 +17,8 @@ extern crate num_derive;
 extern crate concat_arrays;
 extern crate anyhow;
 extern crate piston_window;
+extern crate rand;
+extern crate rodio;
 
 mod board;
 mod piece;
@@ -39,7 +43,9 @@ fn main() -> Result<()> {
             });
         }
 
-        if let Some(_args) = e.update_args() {}
+        if let Some(args) = e.update_args() {
+            board.update(Duration::from_secs_f64(args.dt));
+        }
 
         if let Event::Input(input, _) = e {
             match input {

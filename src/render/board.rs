@@ -20,6 +20,7 @@ impl Render for Board {
         let square_side = args.window_size[0] / 8.;
         let is_dragging = self.is_dragging();
         let selected_piece_legal_moves = self.get_selected_piece_legal_moves();
+        let flying_piece = self.flying_piece();
 
         clear(self.rgb::<u8>(0, 48, 73), g);
 
@@ -29,6 +30,9 @@ impl Render for Board {
                 let is_selected = self.is_selected(x, y);
                 let is_legal_move = selected_piece_legal_moves.contains(&[x, y]);
                 let is_in_last_move = self.is_in_last_move(x, y);
+                let is_flying = flying_piece
+                    .map(|(from, ..)| from == [x, y])
+                    .unwrap_or(false);
 
                 let c = c
                     .clone()
@@ -67,7 +71,7 @@ impl Render for Board {
                     );
                 }
 
-                if !is_selected || !is_dragging {
+                if (!is_selected || !is_dragging) && !is_flying {
                     self.get_piece(x, y)
                         .render(args, c, g, texture_bank, mouse_pos);
                 }
@@ -81,6 +85,18 @@ impl Render for Board {
                     .trans_pos(mouse_pos)
                     .scale(square_side, square_side)
                     .trans(-0.5, -0.5),
+                g,
+                texture_bank,
+                mouse_pos,
+            );
+        }
+
+        if let Some(([x, y], [current_y, current_x], _)) = flying_piece {
+            self.get_piece(x, y).render(
+                args,
+                c.clone()
+                    .scale(square_side, square_side)
+                    .trans(current_x, current_y),
                 g,
                 texture_bank,
                 mouse_pos,
