@@ -228,6 +228,10 @@ impl Piece {
     }
 
     pub fn slide(&self, [x, y]: [isize; 2], board: &Board, moves: &mut Vec<[usize; 2]>) -> bool {
+        if !(0..8).contains(&x) || !(0..8).contains(&y) {
+            return false;
+        }
+
         if let Some(color) = board.get_piece_maybe(x, y).map(|p| p.color()) {
             if color != self.color() {
                 moves.push([x as usize, y as usize]);
