@@ -29,6 +29,14 @@ pub enum Opponent {
     Computer,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Status {
+    Playing,
+    Stalemate,
+    Checkmate,
+    Dead,
+}
+
 #[derive(Clone)]
 pub struct Board {
     pieces: [Piece; 64],
@@ -43,6 +51,8 @@ pub struct Board {
     rng: ThreadRng,
     flying_piece: Option<(usize, [f64; 2], usize)>,
     square_in_promotion: Option<usize>,
+    status: Status,
+    pieces_locations: HashMap<Piece, Vec<usize>>,
 }
 
 impl Board {
@@ -105,17 +115,7 @@ impl Board {
             .filter(|[x, y]| {
                 let mut board = self.clone();
                 board.force_move_piece(square_index, *y * 8 + *x, true);
-                let mut king = 0;
-                for i in 0..64 {
-                    if board.pieces[i] == Piece::King | self.current_turn {
-                        king = i;
-                    }
-                }
-                board
-                    .get_all_sub_legal_moves()
-                    .iter()
-                    .find(|[_, to]| *to == king)
-                    .is_none()
+                !board.is_check(self.current_turn)
             })
             .map(|m| m.clone())
             .collect();
@@ -165,6 +165,21 @@ impl Board {
         }
 
         legal_moves
+    }
+
+    fn is_check(&mut self, color: Piece) -> bool {
+        let king = self
+            .pieces_locations
+            .get(&(Piece::King | color))
+            .unwrap()
+            .first()
+            .unwrap()
+            .clone();
+
+        self.get_all_sub_legal_moves()
+            .iter()
+            .find(|[_, to]| *to == king)
+            .is_some()
     }
 
     pub fn is_in_last_move(&self, x: usize, y: usize) -> bool {
@@ -251,6 +266,37 @@ impl Board {
         if self.get_legal_moves_square_indices(from).contains(&to) {
             self.force_move_piece(from, to, false);
         }
+
+        let legal_moves = self.get_all_legal_moves();
+        if legal_moves.len() == 0 {
+            if self.is_check(self.current_turn) {
+                self.status = Status::Checkmate
+            } else {
+                self.status = Status::Stalemate
+            }
+        }
+
+        if self.square_in_promotion.is_none() {
+            let remaining_pieces = self
+                .pieces_locations
+                .iter()
+                .filter(|(piece, _)| !piece.is_none() && piece.split().0 != Piece::King)
+                .map(|(piece, locations)| locations.iter().map(move |_| piece.clone()))
+                .flatten()
+                .collect::<Vec<_>>();
+
+            if remaining_pieces.len() == 0
+                || (remaining_pieces.len() == 1
+                    && [Piece::Bishop, Piece::LeftKnight, Piece::RightKnight]
+                        .contains(&remaining_pieces.first().unwrap().split().0))
+            {
+                self.status = Status::Dead
+            }
+
+            if self.status != Status::Playing {
+                println!("{:?}", self.status);
+            }
+        }
     }
 
     pub fn force_move_piece(&mut self, from: usize, to: usize, silent: bool) {
@@ -263,6 +309,14 @@ impl Board {
 
         let mut ate = !self.pieces[to].is_none();
 
+        let piece_locations = self.pieces_locations.get_mut(&self.pieces[from]).unwrap();
+        piece_locations.remove(piece_locations.iter().position(|i| *i == from).unwrap());
+        piece_locations.push(to);
+        if !self.pieces[to].is_none() {
+            let piece_locations = self.pieces_locations.get_mut(&self.pieces[to]).unwrap();
+            piece_locations.remove(piece_locations.iter().position(|i| *i == to).unwrap());
+        }
+
         self.pieces.swap(from, to);
         self.pieces[from] = Piece::None;
         self.last_move = [from, to];
@@ -270,14 +324,39 @@ impl Board {
         self.moved_pieces.insert(to);
 
         if is_little_castle {
+            let piece_locations = self
+                .pieces_locations
+                .get_mut(&self.pieces[from + 3])
+                .unwrap();
+            piece_locations.remove(piece_locations.iter().position(|i| *i == from + 3).unwrap());
+            piece_locations.push(from + 1);
+
             self.pieces.swap(from + 3, from + 1);
             self.moved_pieces.insert(from + 3);
         }
         if is_big_castle {
+            let piece_locations = self
+                .pieces_locations
+                .get_mut(&self.pieces[from - 4])
+                .unwrap();
+            piece_locations.remove(piece_locations.iter().position(|i| *i == from - 4).unwrap());
+            piece_locations.push(from - 1);
+
             self.pieces.swap(from - 4, from - 1);
             self.moved_pieces.insert(from - 4);
         }
         if is_en_passant {
+            let piece_locations = self
+                .pieces_locations
+                .get_mut(&self.pieces[from + to % 8 - from % 8])
+                .unwrap();
+            piece_locations.remove(
+                piece_locations
+                    .iter()
+                    .position(|i| *i == from + to % 8 - from % 8)
+                    .unwrap(),
+            );
+
             self.pieces[from + to % 8 - from % 8] = Piece::None;
             self.moved_pieces.insert(from + to % 8 - from % 8);
             ate = true;
@@ -289,6 +368,9 @@ impl Board {
         self.legal_moves.drain();
 
         if is_promotion {
+            let piece_locations = self.pieces_locations.get_mut(&self.pieces[to]).unwrap();
+            piece_locations.remove(piece_locations.iter().position(|i| *i == to).unwrap());
+
             self.pieces[to] = Piece::None;
             self.square_in_promotion = Some(to);
         } else {
@@ -298,6 +380,10 @@ impl Board {
 
     pub fn promote(&mut self, piece: Piece) {
         if let Some(square_in_promotion) = self.square_in_promotion {
+            self.pieces_locations
+                .get_mut(&(piece | self.current_turn))
+                .unwrap()
+                .push(square_in_promotion);
             self.pieces[square_in_promotion] = piece | self.current_turn;
             self.square_in_promotion = None;
             self.current_turn = self.current_turn.ennemy();
@@ -333,7 +419,7 @@ impl Board {
     }
 
     pub fn update(&mut self, dt: Duration) {
-        if self.current_opponent() == Opponent::Computer {
+        if self.status == Status::Playing && self.current_opponent() == Opponent::Computer {
             if self.square_in_promotion.is_some() {
                 self.promote(
                     *[Piece::Queen, Piece::Rook, Piece::Bishop, Piece::LeftKnight]
@@ -348,7 +434,7 @@ impl Board {
                 let dist = (dist_x.powi(2) + dist_y.powi(2)).sqrt();
                 let total_dist =
                     ((target[0] - start[0]).powi(2) + (target[1] - start[1]).powi(2)).sqrt();
-                let v = total_dist * 4.;
+                let v = total_dist * 5.;
                 let d = dt.as_secs_f64() * v;
                 if d >= dist {
                     self.flying_piece = None;
@@ -382,6 +468,14 @@ impl Default for Board {
         black_pieces.clone().swap_with_slice(&mut pieces[..16]);
         white_pieces.clone().swap_with_slice(&mut pieces[48..]);
 
+        let mut pieces_locations = HashMap::new();
+        for i in 0..64 {
+            pieces_locations
+                .entry(pieces[i])
+                .or_insert(Vec::new())
+                .push(i);
+        }
+
         Self {
             pieces,
             selected: None,
@@ -395,6 +489,8 @@ impl Default for Board {
             rng: thread_rng(),
             flying_piece: None,
             square_in_promotion: None,
+            status: Status::Playing,
+            pieces_locations,
         }
     }
 }
