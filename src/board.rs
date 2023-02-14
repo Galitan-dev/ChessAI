@@ -42,6 +42,7 @@ pub struct Board {
     black_opponent: Opponent,
     rng: ThreadRng,
     flying_piece: Option<(usize, [f64; 2], usize)>,
+    square_in_promotion: Option<usize>,
 }
 
 impl Board {
@@ -71,6 +72,10 @@ impl Board {
 
     pub fn get_selected(&self) -> Piece {
         self.selected.map(|i| self.pieces[i]).unwrap_or(Piece::None)
+    }
+
+    pub fn is_in_promotion(&self, x: usize, y: usize) -> bool {
+        self.square_in_promotion == Some(y * 8 + x)
     }
 
     pub fn get_selected_piece_legal_moves(&mut self) -> Vec<[usize; 2]> {
@@ -148,6 +153,23 @@ impl Board {
         let y = (mouse_y * 8.).floor() as usize;
         let square_index = y * 8 + x;
 
+        if self.square_in_promotion.is_some() {
+            if self.is_in_promotion(x, y) {
+                let realtive_x = mouse_x * 8. - x as f64;
+                let realtive_y = mouse_y * 8. - y as f64;
+                match [
+                    (realtive_x * 2.).floor() as usize,
+                    (realtive_y * 2.).floor() as usize,
+                ] {
+                    [0, 0] => self.promote(Piece::Queen),
+                    [1, 0] => self.promote(Piece::Rook),
+                    [0, 1] => self.promote(Piece::Bishop),
+                    [1, 1] => self.promote(Piece::LeftKnight),
+                    combination => panic!("unexpected combination: {:?}", combination),
+                }
+            }
+        }
+
         if let Some(selected) = self.selected {
             self.selected = None;
             if selected != square_index {
@@ -189,6 +211,7 @@ impl Board {
             let is_big_castle = piece == Piece::King && to + 2 == from;
             let is_en_passant =
                 piece == Piece::Pawn && to % 8 != from % 8 && self.pieces[to].is_none();
+            let is_promotion = piece == Piece::Pawn && [0., 7.].contains(&(to as f64 / 8.).floor());
 
             let mut ate = !self.pieces[to].is_none();
 
@@ -212,9 +235,24 @@ impl Board {
                 ate = true;
             }
 
-            self.current_turn = self.current_turn.ennemy();
-            self.legal_moves.drain();
             self.play_sound(if ate { "kill" } else { "move" });
+            self.legal_moves.drain();
+
+            if is_promotion {
+                self.pieces[to] = Piece::None;
+                self.square_in_promotion = Some(to);
+            } else {
+                self.current_turn = self.current_turn.ennemy();
+            }
+        }
+    }
+
+    pub fn promote(&mut self, piece: Piece) {
+        if let Some(square_in_promotion) = self.square_in_promotion {
+            self.pieces[square_in_promotion] = piece | self.current_turn;
+            self.square_in_promotion = None;
+            self.current_turn = self.current_turn.ennemy();
+            self.play_sound("promotion");
         }
     }
 
@@ -296,6 +334,7 @@ impl Default for Board {
             black_opponent: Opponent::Computer,
             rng: thread_rng(),
             flying_piece: None,
+            square_in_promotion: None,
         }
     }
 }

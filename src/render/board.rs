@@ -4,7 +4,7 @@ use piston_window::{
     clear, rectangle, rectangle::square, Context, G2d, G2dTexture, RenderArgs, Transformed,
 };
 
-use crate::board::Board;
+use crate::{board::Board, piece::Piece};
 
 use super::Render;
 
@@ -33,6 +33,7 @@ impl Render for Board {
                 let is_flying = flying_piece
                     .map(|(from, ..)| from == [x, y])
                     .unwrap_or(false);
+                let is_in_promotion = self.is_in_promotion(x, y);
 
                 let c = c
                     .clone()
@@ -69,6 +70,16 @@ impl Render for Board {
                         c.transform,
                         g,
                     );
+                }
+
+                if is_in_promotion {
+                    let color = if y == 0 { Piece::White } else { Piece::Black };
+                    let c = c.clone().scale(0.5, 0.5);
+
+                    (Piece::Queen | color).render(args, c, g, texture_bank, mouse_pos);
+                    #[rustfmt::skip] (Piece::Rook | color).render(args, c.clone().trans(1., 0.), g, texture_bank, mouse_pos);
+                    #[rustfmt::skip] (Piece::Bishop | color).render(args, c.clone().trans(0., 1.), g, texture_bank, mouse_pos);
+                    #[rustfmt::skip] (Piece::LeftKnight | color).render(args, c.clone().trans(1., 1.), g, texture_bank, mouse_pos);
                 }
 
                 if (!is_selected || !is_dragging) && !is_flying {
