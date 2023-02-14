@@ -10,7 +10,7 @@ use super::Render;
 
 impl Render for Piece {
     fn render(
-        &self,
+        &mut self,
         _args: RenderArgs,
         c: piston_window::Context,
         g: &mut G2d,

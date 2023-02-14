@@ -15,7 +15,7 @@ pub trait Render {
     }
 
     fn render(
-        &self,
+        &mut self,
         args: RenderArgs,
         c: Context,
         g: &mut G2d,

@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use crate::piece::Piece;
 
@@ -17,7 +17,7 @@ const BACK_ROW: [Piece; 8] = [
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Opponent {
     Player,
-    Computer
+    Computer,
 }
 
 #[derive(Debug, Clone)]
@@ -27,6 +27,7 @@ pub struct Board {
     dragging: bool,
     last_move: [usize; 2],
     moved_pieces: HashSet<usize>,
+    legal_moves: HashMap<usize, Vec<[usize; 2]>>,
     current_turn: Piece,
     white_opponent: Opponent,
     black_opponent: Opponent,
@@ -61,23 +62,31 @@ impl Board {
         self.selected.map(|i| self.pieces[i]).unwrap_or(Piece::None)
     }
 
-    pub fn get_selected_piece_legal_moves(&self) -> Vec<[usize; 2]> {
+    pub fn get_selected_piece_legal_moves(&mut self) -> Vec<[usize; 2]> {
         self.selected
             .map(|i| self.get_legal_moves(i))
             .unwrap_or_default()
     }
 
-    fn get_legal_moves(&self, square_index: usize) -> Vec<[usize; 2]> {
-        self.pieces[square_index].legal_moves(
+    fn get_legal_moves(&mut self, square_index: usize) -> Vec<[usize; 2]> {
+        if let Some(legal_moves) = self.legal_moves.get(&square_index) {
+            return legal_moves.clone();
+        }
+
+        let legal_moves = self.pieces[square_index].legal_moves(
             [
                 square_index % 8,
                 (square_index as f64 / 8.).floor() as usize,
             ],
             self,
-        )
+        );
+
+        self.legal_moves.insert(square_index, legal_moves.clone());
+
+        legal_moves
     }
 
-    fn get_legal_moves_square_indices(&self, square_index: usize) -> Vec<usize> {
+    fn get_legal_moves_square_indices(&mut self, square_index: usize) -> Vec<usize> {
         self.get_legal_moves(square_index)
             .iter()
             .map(|[x, y]| y * 8 + x)
@@ -175,7 +184,8 @@ impl Board {
                 self.moved_pieces.insert(from + to % 8 - from % 8);
             }
 
-            self.current_turn = self.current_turn.ennemy()
+            self.current_turn = self.current_turn.ennemy();
+            self.legal_moves.drain();
         }
     }
 }
@@ -198,9 +208,10 @@ impl Default for Board {
             dragging: false,
             last_move: [0; 2],
             moved_pieces: HashSet::new(),
+            legal_moves: HashMap::new(),
             current_turn: Piece::White,
             white_opponent: Opponent::Player,
-            black_opponent: Opponent::Player
+            black_opponent: Opponent::Player,
         }
     }
 }
