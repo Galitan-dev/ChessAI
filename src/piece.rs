@@ -142,7 +142,10 @@ impl Piece {
                     if gone_right && !board.piece_has_moved(7, uy) {
                         self.slide([x + 2, y], board, &mut moves);
                     }
-                    if gone_left && !board.piece_has_moved(0, uy) && board.get_piece(1, uy).is_none() {
+                    if gone_left
+                        && !board.piece_has_moved(0, uy)
+                        && board.get_piece(1, uy).is_none()
+                    {
                         self.slide([x - 2, y], board, &mut moves);
                     }
                 }

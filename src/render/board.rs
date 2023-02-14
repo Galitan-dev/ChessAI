@@ -28,6 +28,7 @@ impl Render for Board {
                 let is_light_square = (x + y) % 2 == 0;
                 let is_selected = self.is_selected(x, y);
                 let is_legal_move = selected_piece_legal_moves.contains(&[x, y]);
+                let is_in_last_move = self.is_in_last_move(x, y);
 
                 let c = c
                     .clone()
@@ -53,6 +54,13 @@ impl Render for Board {
                 } else if is_legal_move {
                     rectangle(
                         self.rgba::<u8>(214, 40, 40, 0.9),
+                        square(0.0, 0.0, 1.),
+                        c.transform,
+                        g,
+                    );
+                } else if is_in_last_move {
+                    rectangle(
+                        self.rgba::<u8>(247, 127, 0, 0.7),
                         square(0.0, 0.0, 1.),
                         c.transform,
                         g,

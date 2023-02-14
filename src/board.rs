@@ -20,7 +20,7 @@ pub struct Board {
     selected: Option<usize>,
     dragging: bool,
     last_move: [usize; 2],
-    moved_pieces: HashSet<usize>
+    moved_pieces: HashSet<usize>,
 }
 
 impl Board {
@@ -75,6 +75,15 @@ impl Board {
             .collect()
     }
 
+    pub fn is_in_last_move(&self, x: usize, y: usize) -> bool {
+        if self.last_move[0] == self.last_move[1] {
+            return false;
+        }
+
+        let square_index = y * 8 + x;
+        self.last_move[0] == square_index || self.last_move[1] == square_index
+    }
+
     pub fn piece_has_moved(&self, x: usize, y: usize) -> bool {
         self.moved_pieces.contains(&(y * 8 + x))
     }
@@ -119,7 +128,8 @@ impl Board {
 
             let is_little_castle = piece == Piece::King && to == from + 2;
             let is_big_castle = piece == Piece::King && to == from - 2;
-            let is_en_passant = piece == Piece::Pawn && to % 8 != from % 8 && self.pieces[to].is_none();
+            let is_en_passant =
+                piece == Piece::Pawn && to % 8 != from % 8 && self.pieces[to].is_none();
 
             self.pieces.swap(from, to);
             self.pieces[from] = Piece::None;
@@ -139,7 +149,6 @@ impl Board {
                 self.pieces[from + to % 8 - from % 8] = Piece::None;
                 self.moved_pieces.insert(from + to % 8 - from % 8);
             }
-
         }
     }
 }
@@ -161,7 +170,7 @@ impl Default for Board {
             selected: None,
             dragging: false,
             last_move: [0; 2],
-            moved_pieces: HashSet::new()
+            moved_pieces: HashSet::new(),
         }
     }
 }
