@@ -350,10 +350,11 @@ impl Board {
                 }
             } else {
                 let legal_moves = self.get_all_legal_moves();
-                let [from, to] = *legal_moves.choose(&mut self.rng).unwrap();
-                self.flying_piece =
-                    Some((from, [(from as f64 / 8.).floor(), from as f64 % 8.], to));
-                self.last_move = [from, to];
+                if let Some([from, to]) = legal_moves.choose(&mut self.rng).copied() {
+                    self.flying_piece =
+                        Some((from, [(from as f64 / 8.).floor(), from as f64 % 8.], to));
+                    self.last_move = [from, to];
+                }
             }
         }
     }
