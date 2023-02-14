@@ -130,13 +130,22 @@ impl Piece {
             }
             Self::King => {
                 self.slide([x + 1, y + 1], board, &mut moves);
-                self.slide([x + 1, y], board, &mut moves);
+                let gone_right = self.slide([x + 1, y], board, &mut moves);
                 self.slide([x + 1, y - 1], board, &mut moves);
                 self.slide([x, y + 1], board, &mut moves);
                 self.slide([x, y - 1], board, &mut moves);
                 self.slide([x - 1, y + 1], board, &mut moves);
-                self.slide([x - 1, y], board, &mut moves);
+                let gone_left = self.slide([x - 1, y], board, &mut moves);
                 self.slide([x - 1, y - 1], board, &mut moves);
+
+                if !board.piece_has_moved(ux, uy) {
+                    if gone_right && !board.piece_has_moved(7, uy) {
+                        self.slide([x + 2, y], board, &mut moves);
+                    }
+                    if gone_left && !board.piece_has_moved(0, uy) && board.get_piece(1, uy).is_none() {
+                        self.slide([x - 2, y], board, &mut moves);
+                    }
+                }
             }
             Self::Pawn => {
                 let dy = if self.is_white() { -1 } else { 1 };
@@ -150,14 +159,30 @@ impl Piece {
                     }
                 }
 
-                if (1..7).contains(&x) {
-                    if board.get_piece(ux - 1, (y + dy) as usize).color() == self.ennemy() {
-                        moves.push([ux - 1, (y + dy) as usize]);
-                    }
+                if x > 0
+                    && (board.get_piece(ux - 1, (y + dy) as usize).color() == self.ennemy()
+                        || (board.get_piece(ux - 1, y as usize).split()
+                            == (Self::Pawn, self.ennemy())
+                            && board.get_last_move()
+                                == [
+                                    ((y + 2 * dy) * 8 + x - 1) as usize,
+                                    (y * 8 + x - 1) as usize,
+                                ]))
+                {
+                    moves.push([ux - 1, (y + dy) as usize]);
+                }
 
-                    if board.get_piece(ux + 1, (y + dy) as usize).color() == self.ennemy() {
-                        moves.push([ux + 1, (y + dy) as usize]);
-                    }
+                if x < 7
+                    && (board.get_piece(ux + 1, (y + dy) as usize).color() == self.ennemy()
+                        || (board.get_piece(ux + 1, y as usize).split()
+                            == (Self::Pawn, self.ennemy())
+                            && board.get_last_move()
+                                == [
+                                    ((y + 2 * dy) * 8 + x + 1) as usize,
+                                    (y * 8 + x + 1) as usize,
+                                ]))
+                {
+                    moves.push([ux + 1, (y + dy) as usize]);
                 }
             }
             Self::LeftKnight | Self::RightKnight => {

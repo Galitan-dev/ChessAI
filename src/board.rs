@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use crate::piece::Piece;
 
 const FRONT_ROW: [Piece; 8] = [Piece::Pawn; 8];
@@ -12,11 +14,13 @@ const BACK_ROW: [Piece; 8] = [
     Piece::Rook,
 ];
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct Board {
     pieces: [Piece; 64],
     selected: Option<usize>,
     dragging: bool,
+    last_move: [usize; 2],
+    moved_pieces: HashSet<usize>
 }
 
 impl Board {
@@ -38,6 +42,10 @@ impl Board {
 
     pub fn is_dragging(&self) -> bool {
         self.dragging
+    }
+
+    pub fn get_last_move(&self) -> [usize; 2] {
+        self.last_move
     }
 
     pub fn get_selected(&self) -> Piece {
@@ -65,6 +73,10 @@ impl Board {
             .iter()
             .map(|[x, y]| y * 8 + x)
             .collect()
+    }
+
+    pub fn piece_has_moved(&self, x: usize, y: usize) -> bool {
+        self.moved_pieces.contains(&(y * 8 + x))
     }
 
     pub fn mouse_press(&mut self, mouse_x: f64, mouse_y: f64) {
@@ -103,8 +115,31 @@ impl Board {
 
     pub fn move_piece(&mut self, from: usize, to: usize) {
         if self.get_legal_moves_square_indices(from).contains(&to) {
+            let (piece, _) = self.pieces[from].split();
+
+            let is_little_castle = piece == Piece::King && to == from + 2;
+            let is_big_castle = piece == Piece::King && to == from - 2;
+            let is_en_passant = piece == Piece::Pawn && to % 8 != from % 8 && self.pieces[to].is_none();
+
             self.pieces.swap(from, to);
             self.pieces[from] = Piece::None;
+            self.last_move = [from, to];
+            self.moved_pieces.insert(from);
+            self.moved_pieces.insert(to);
+
+            if is_little_castle {
+                self.pieces.swap(from + 3, from + 1);
+                self.moved_pieces.insert(from + 3);
+            }
+            if is_big_castle {
+                self.pieces.swap(from - 4, from - 1);
+                self.moved_pieces.insert(from - 4);
+            }
+            if is_en_passant {
+                self.pieces[from + to % 8 - from % 8] = Piece::None;
+                self.moved_pieces.insert(from + to % 8 - from % 8);
+            }
+
         }
     }
 }
@@ -125,6 +160,8 @@ impl Default for Board {
             pieces,
             selected: None,
             dragging: false,
+            last_move: [0; 2],
+            moved_pieces: HashSet::new()
         }
     }
 }
