@@ -335,11 +335,14 @@ impl Board {
     pub fn update(&mut self, dt: Duration) {
         if self.current_opponent() == Opponent::Computer {
             if let Some((from, current, to)) = self.flying_piece {
+                let start = [(from as f64 / 8.).floor(), from as f64 % 8.];
                 let target = [(to as f64 / 8.).floor(), to as f64 % 8.];
                 let dist_x = target[0] - current[0];
                 let dist_y = target[1] - current[1];
                 let dist = (dist_x.powi(2) + dist_y.powi(2)).sqrt();
-                let d = dt.as_secs_f64() * 4.;
+                let total_dist = ((target[0] - start[0]).powi(2) + (target[1] - start[1]).powi(2)).sqrt();
+                let v = total_dist * 2.;
+                let d = dt.as_secs_f64() * v;
                 if d >= dist {
                     self.flying_piece = None;
                     self.move_piece(from, to);
